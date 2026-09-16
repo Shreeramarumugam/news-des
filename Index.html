@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>USDCAD News Desk v1.0.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E1726; --panel:#16213A; --panel2:#1B2846; --line:#2A3858;
+  --text:#E6EAF2; --muted:#8D99B3;
+  --usd:#5B9BFF; --cad:#FF5A5F;
+  --clear:#2BD39A; --stop:#FF4D5E; --soon:#F2C94C;
+  --up:#FF9F43; --down:#46C8E8;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.45}
+a{color:var(--usd)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--soon);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding:18px 20px 40px}
+
+/* Header */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.brand h1 .u{color:var(--usd)} .brand h1 .c{color:var(--cad)}
+.brand .ver{color:var(--muted);font-size:12px}
+.clocks{display:flex;gap:18px}
+.clock{display:flex;flex-direction:column}
+.clock .lbl{font-size:12px;color:var(--muted)}
+.clock .val{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.primary{background:var(--usd);border-color:var(--usd);color:#08111F;font-weight:600}
+
+/* Banner: the one loud element */
+#banner{margin:20px 0 8px;border-radius:14px;padding:22px 26px;border:1px solid var(--line);background:var(--panel);display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:center}
+#banner .lamp{width:22px;height:22px;border-radius:50%;background:var(--muted);grid-row:span 3}
+#banner .word{font-size:clamp(30px,5vw,52px);font-weight:700;line-height:1.05;letter-spacing:-.02em}
+#banner .detail{font-size:17px}
+#banner .why{color:var(--muted);font-size:14px}
+#banner.clear{border-color:var(--clear);background:linear-gradient(0deg,rgba(43,211,154,.08),rgba(43,211,154,.08)),var(--panel)}
+#banner.clear .lamp{background:var(--clear);box-shadow:0 0 18px var(--clear)}
+#banner.clear .word{color:var(--clear)}
+#banner.soon{border-color:var(--soon);background:linear-gradient(0deg,rgba(242,201,76,.09),rgba(242,201,76,.09)),var(--panel)}
+#banner.soon .lamp{background:var(--soon);box-shadow:0 0 18px var(--soon)}
+#banner.soon .word{color:var(--soon)}
+#banner.stop{border-color:var(--stop);background:linear-gradient(0deg,rgba(255,77,94,.12),rgba(255,77,94,.12)),var(--panel)}
+#banner.stop .lamp{background:var(--stop);box-shadow:0 0 22px var(--stop);animation:pulse 1.6s ease-in-out infinite}
+#banner.stop .word{color:var(--stop)}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){#banner.stop .lamp{animation:none}}
+.note-line{color:var(--muted);font-size:13px;margin:0 0 18px}
+
+/* Notice */
+#notice{display:none;margin:0 0 18px;padding:14px 16px;border-radius:10px;border:1px solid var(--soon);background:rgba(242,201,76,.07)}
+#notice.info{border-color:var(--line);background:var(--panel)}
+#notice p{margin:0 0 10px}
+#notice .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#paste-box{display:none;margin-top:12px}
+#paste-box textarea{width:100%;min-height:110px;background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12px}
+#paste-box ol{margin:0 0 10px;padding-left:20px;color:var(--muted)}
+
+/* Legend */
+#legend{display:flex;flex-wrap:wrap;gap:8px 20px;padding:12px 16px;border-radius:10px;background:var(--panel);margin-bottom:16px;font-size:14px}
+#legend b{font-weight:600}
+
+/* Days */
+.days{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.day{background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.day[aria-pressed="true"]{background:var(--text);color:var(--ink);border-color:var(--text);font-weight:600}
+.day .today{color:var(--clear);font-weight:600}
+.day[aria-pressed="true"] .today{color:#0a7a55}
+
+/* Table */
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{width:100%;border-collapse:collapse;min-width:980px}
+th,td{padding:11px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-size:13px;font-weight:600;color:var(--muted);background:var(--panel2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.t{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.sub{color:var(--muted);font-size:12.5px;margin-top:3px}
+.dim{color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:28px}
+.cur{display:inline-block;font-weight:700;font-size:13px;padding:2px 8px;border-radius:6px;border:1px solid}
+.cur.USD{color:var(--usd);border-color:var(--usd)}
+.cur.CAD{color:var(--cad);border-color:var(--cad)}
+.imp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.imp i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.imp.High i{background:var(--stop)} .imp.Medium i{background:var(--up)} .imp.Low i{background:var(--soon)} .imp.Other i{background:var(--muted)}
+.act{width:96px;background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-family:var(--mono)}
+.act:not(:placeholder-shown){border-color:var(--usd)}
+.sc{margin-bottom:4px}
+.res{font-size:15px}
+.dir{display:inline-block;font-family:var(--mono);font-weight:600;font-size:13px;padding:1px 7px;border-radius:5px;white-space:nowrap}
+.dir.up{color:var(--up);background:rgba(255,159,67,.12)}
+.dir.down{color:var(--down);background:rgba(70,200,232,.12)}
+.pill{display:inline-block;font-size:12.5px;padding:3px 9px;border-radius:999px;white-space:nowrap;border:1px solid var(--line)}
+.pill.wait{color:var(--text)}
+.pill.live{color:var(--stop);border-color:var(--stop)}
+.pill.need{color:var(--soon);border-color:var(--soon)}
+.pill.done{color:var(--muted)}
+.pill.hol{color:var(--muted);border-style:dashed}
+table.hide-meaning .col-meaning{display:none}
+tr.next td{background:rgba(91,155,255,.06)}
+
+/* Lower panels */
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.panel h2{margin:0 0 12px;font-size:17px}
+.blk{display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.blk:first-of-type{border-top:0}
+.blk .rng{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.blk .what{font-size:14px}
+.links h3{margin:12px 0 6px;font-size:14px;color:var(--muted);font-weight:600}
+.links h3:first-of-type{margin-top:0}
+.links ul{margin:0;padding-left:18px}
+.links li{margin:3px 0}
+footer{margin-top:26px;color:var(--muted);font-size:13px}
+footer p{margin:4px 0}
+
+/* Settings */
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:0;max-width:560px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(5,10,20,.7)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dlg-head h2{margin:0;font-size:18px}
+.dlg-body{padding:8px 20px 20px;max-height:70vh;overflow:auto}
+.dlg-body h3{font-size:14px;color:var(--muted);margin:16px 0 6px;font-weight:600}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:8px 0;border-bottom:1px solid var(--line)}
+.opt small{display:block;color:var(--muted);font-size:12.5px}
+.opt input[type=checkbox]{width:20px;height:20px;accent-color:var(--usd);flex:none}
+.opt input[type=number]{width:74px;background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-family:var(--mono)}
+.dlg-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+
+.hidden{display:none !important}
+@media (max-width:860px){
+  .lower{grid-template-columns:1fr}
+  #banner{padding:18px}
+  .wrap{padding:14px 12px 30px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <h1><span class="u">USD</span><span class="c">CAD</span> News Desk</h1>
+    <span class="ver">v1.0.1</span>
+  </div>
+  <div class="clocks" id="clocks">
+    <div class="clock"><span class="lbl">India (IST)</span><span class="val" id="clk-ist">--:--:--</span></div>
+    <div class="clock"><span class="lbl">New York</span><span class="val" id="clk-ny">--:--:--</span></div>
+  </div>
+  <button class="btn primary" id="btn-refresh" type="button">Refresh data</button>
+  <button class="btn" id="btn-settings" type="button">Settings</button>
+</header>
+
+<section id="banner" aria-live="polite">
+  <span class="lamp" aria-hidden="true"></span>
+  <div class="word" id="b-word">Loading</div>
+  <div class="detail" id="b-detail">Fetching this week's calendar.</div>
+  <div class="why" id="b-why"></div>
+</section>
+<p class="note-line">This light covers news risk only. Your setup rules still decide whether to trade.</p>
+
+<section id="notice" role="status">
+  <p id="notice-text"></p>
+  <div class="row" id="notice-actions"></div>
+  <div id="paste-box">
+    <ol>
+      <li>Open the <a id="feed-link" target="_blank" rel="noopener">calendar feed</a> in a new tab.</li>
+      <li>Select all the text (Ctrl+A), copy it, and paste it below.</li>
+    </ol>
+    <textarea id="paste-text" placeholder="Paste the feed text here"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="btn-use-paste" type="button">Use pasted data</button>
+    </div>
+  </div>
+</section>
+
+<section id="legend">
+  <span><span class="dir up">USDCAD ▲</span> when <b>USD gets stronger</b> or <b>CAD gets weaker</b></span>
+  <span><span class="dir down">USDCAD ▼</span> when <b>CAD gets stronger</b> or <b>USD gets weaker</b></span>
+</section>
+
+<nav class="days" id="days" aria-label="Choose a day"></nav>
+
+<div class="tablebox">
+  <table id="ev-table">
+    <thead>
+      <tr>
+        <th>Time (IST)</th>
+        <th>Currency</th>
+        <th>Event</th>
+        <th>Impact</th>
+        <th>Previous</th>
+        <th>Forecast</th>
+        <th>Actual</th>
+        <th class="col-meaning">What it means for USDCAD</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="ev-body">
+      <tr><td colspan="9" class="empty">Loading the calendar.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="lower">
+  <section class="panel" id="blocks-panel">
+    <h2>No-trade blocks for this day</h2>
+    <div id="blocks"></div>
+  </section>
+  <section class="panel links" id="links-panel">
+    <h2>Links</h2>
+    <h3>Watch live</h3>
+    <ul>
+      <li><a href="https://www.youtube.com/federalreserve" target="_blank" rel="noopener">Fed on YouTube</a> (FOMC press conferences)</li>
+      <li><a href="https://www.federalreserve.gov/newsevents/calendar.htm" target="_blank" rel="noopener">Fed calendar</a> (press conference item opens the live video)</li>
+      <li><a href="https://www.bankofcanada.ca/press/speeches/webcasts/" target="_blank" rel="noopener">Bank of Canada webcasts</a> (Governor's press conferences and speeches)</li>
+      <li><a href="https://www.youtube.com/user/bankofcanadaofficial" target="_blank" rel="noopener">Bank of Canada on YouTube</a></li>
+    </ul>
+    <h3>US and the Fed</h3>
+    <ul>
+      <li><a href="https://www.federalreserve.gov/newsevents/calendar.htm" target="_blank" rel="noopener">Fed calendar</a></li>
+      <li><a href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" target="_blank" rel="noopener">FOMC meeting dates</a></li>
+      <li><a href="https://www.youtube.com/federalreserve" target="_blank" rel="noopener">Watch the Fed live (YouTube)</a></li>
+      <li><a href="https://www.bls.gov/schedule/news_release/" target="_blank" rel="noopener">BLS release schedule (jobs, CPI)</a></li>
+      <li><a href="https://www.bea.gov/news/schedule" target="_blank" rel="noopener">BEA release schedule (GDP, PCE)</a></li>
+      <li><a href="https://www.census.gov/economic-indicators/" target="_blank" rel="noopener">Census indicators (retail sales, housing)</a></li>
+      <li><a href="https://www.eia.gov/petroleum/supply/weekly/" target="_blank" rel="noopener">EIA weekly oil inventories</a></li>
+    </ul>
+    <h3>Canada and the Bank of Canada</h3>
+    <ul>
+      <li><a href="https://www.bankofcanada.ca/press/upcoming-events/" target="_blank" rel="noopener">Bank of Canada events and webcasts</a></li>
+      <li><a href="https://www.bankofcanada.ca/core-functions/monetary-policy/key-interest-rate/" target="_blank" rel="noopener">Bank of Canada policy rate</a></li>
+      <li><a href="https://www150.statcan.gc.ca/n1/dai-quo/cal1-eng.htm" target="_blank" rel="noopener">Statistics Canada release calendar</a></li>
+      <li><a href="https://www150.statcan.gc.ca/n1/dai-quo/index-eng.htm" target="_blank" rel="noopener">Statistics Canada daily releases</a></li>
+    </ul>
+    <h3>Calendars</h3>
+    <ul>
+      <li><a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener">Forex Factory calendar (live actuals)</a></li>
+      <li><a href="https://www.tradingview.com/economic-calendar/" target="_blank" rel="noopener">TradingView economic calendar</a></li>
+      <li><a href="https://www.investing.com/economic-calendar/" target="_blank" rel="noopener">Investing.com economic calendar</a></li>
+    </ul>
+  </section>
+</div>
+
+<footer>
+  <p id="source-line">No data loaded yet.</p>
+  <p>A trading day here runs from 5:30 AM IST to 5:29 AM IST the next morning, so late-night US news stays with the evening it belongs to.</p>
+  <p>Arrows show the usual first reaction to a surprise, not a prediction. The first move often reverses. Check official pages before relying on a time. Not financial advice.</p>
+</footer>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-head">
+    <h2>Settings</h2>
+    <button class="btn" id="btn-close" type="button">Close</button>
+  </div>
+  <div class="dlg-body">
+    <h3>Show</h3>
+    <label class="opt"><span>Clocks</span><input type="checkbox" data-set="showClocks"></label>
+    <label class="opt"><span>What it means for USDCAD<small>The column and the ▲/▼ legend</small></span><input type="checkbox" data-set="showMeaning"></label>
+    <label class="opt"><span>No-trade blocks</span><input type="checkbox" data-set="showBlocks"></label>
+    <label class="opt"><span>Links</span><input type="checkbox" data-set="showLinks"></label>
+    <label class="opt"><span>Watch link on press conferences and speeches</span><input type="checkbox" data-set="showWatch"></label>
+    <label class="opt"><span>Low impact events<small>Never create no-trade blocks</small></span><input type="checkbox" data-set="showLow"></label>
+    <label class="opt"><span>Bank holidays</span><input type="checkbox" data-set="showHolidays"></label>
+
+    <h3>No-trade windows (minutes)</h3>
+    <label class="opt"><span>High impact: stop before</span><input type="number" min="0" max="240" data-set="hiBefore"></label>
+    <label class="opt"><span>High impact: wait after</span><input type="number" min="0" max="240" data-set="hiAfter"></label>
+    <label class="opt"><span>Medium impact: stop before</span><input type="number" min="0" max="240" data-set="medBefore"></label>
+    <label class="opt"><span>Medium impact: wait after</span><input type="number" min="0" max="240" data-set="medAfter"></label>
+    <label class="opt"><span>Press conference or speech length<small>Added before the "wait after" time</small></span><input type="number" min="0" max="240" data-set="talkLen"></label>
+
+    <h3>Data</h3>
+    <label class="opt"><span>Reuse saved data for (minutes)<small>Fewer requests keeps Forex Factory from blocking you</small></span><input type="number" min="5" max="1440" data-set="cacheMins"></label>
+    <label class="opt"><span>Fetch through a public relay<small>Only if direct fetching is blocked. Sends the request via allorigins.win. Only the public calendar passes through it.</small></span><input type="checkbox" data-set="useProxy"></label>
+
+    <div class="dlg-actions">
+      <button class="btn" id="btn-paste" type="button">Paste feed manually</button>
+      <button class="btn" id="btn-clear-actuals" type="button">Clear typed actuals</button>
+      <button class="btn" id="btn-reset" type="button">Reset settings</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  'use strict';
+
+  var FEED_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+  var PROXY_URL = 'https://api.allorigins.win/raw?url=';
+  var WATCH_URL = {
+    USD: 'https://www.youtube.com/federalreserve',
+    CAD: 'https://www.bankofcanada.ca/press/speeches/webcasts/'
+  };
+  var KEY_SETTINGS = 'ucnd_settings_v1';
+  var KEY_CACHE = 'ucnd_cache_v1';
+  var KEY_ACTUALS = 'ucnd_actuals_v1';
+  var MIN = 60000;
+  var REFRESH_COOLDOWN = 5 * MIN;
+  var SOON_WINDOW = 30 * MIN;
+
+  var DEFAULTS = {
+    showClocks: true, showMeaning: true, showBlocks: true, showLinks: true, showWatch: true,
+    showLow: false, showHolidays: true, useProxy: false,
+    hiBefore: 15, hiAfter: 15, medBefore: 5, medAfter: 5, talkLen: 60, cacheMins: 60
+  };
+
+  // ---------- storage ----------
+  function lsGet(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+
+  var settings = Object.assign({}, DEFAULTS, lsGet(KEY_SETTINGS) || {});
+  var actuals = lsGet(KEY_ACTUALS) || {};
+  var events = [];
+  var eventMap = new Map();
+  var blocks = [];
+  var fetchedAt = null;
+  var fetchedVia = '';
+  var selectedDay = null;
+
+  function $(s) { return document.querySelector(s); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---------- time formatting ----------
+  var fTimeIST = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true });
+  var fTimeNY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
+  var fClockIST = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+  var fClockNY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+  var fDayIST = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' });
+  var fDateTimeIST = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+
+  // Trading day = UTC date, i.e. 5:30 AM IST to 5:29 AM IST next day.
+  function dayKey(ms) { return new Date(ms).toISOString().slice(0, 10); }
+  function dayLabel(key) { return fDayIST.format(new Date(key + 'T12:00:00Z')); }
+
+  function fmtDur(ms) {
+    ms = Math.max(0, ms);
+    var s = Math.floor(ms / 1000);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (h >= 24) { var d = Math.floor(h / 24); return d + 'd ' + (h % 24) + 'h'; }
+    if (h > 0) return h + 'h ' + m + 'm';
+    if (m > 0) return m + 'm ' + String(sec).padStart(2, '0') + 's';
+    return sec + 's';
+  }
+
+  // ---------- event classification ----------
+  var TALK_WORDS = ['speaks', 'minutes', 'statement', 'press conference', 'projections', 'deliberations',
+    'beige book', 'auction', 'holiday', 'testifies', 'testimony', 'monetary policy report', 'natural gas', 'summit', 'election'];
+  var INVERSE_WORDS = ['unemployment rate', 'unemployment claims', 'jobless', 'continuing claims', 'job cuts', 'claimant'];
+  var RATE_WORDS = ['federal funds rate', 'overnight rate'];
+
+  function classify(title) {
+    var t = String(title).toLowerCase();
+    if (t.indexOf('crude oil inventories') !== -1) return 'oil';
+    if (RATE_WORDS.some(function (k) { return t.indexOf(k) !== -1; })) return 'rate';
+    if (TALK_WORDS.some(function (k) { return t.indexOf(k) !== -1; })) return 'talk';
+    if (INVERSE_WORDS.some(function (k) { return t.indexOf(k) !== -1; })) return 'inverse';
+    return 'normal';
+  }
+  function isLong(title) { return /press conference|speaks|testifies|testimony/i.test(title); }
+
+  function num(s) {
+    if (s == null) return null;
+    s = String(s).trim().replace(/,/g, '');
+    if (!s) return null;
+    var m = s.match(/^[<>]?\s*([+-]?\d*\.?\d+)\s*([kmbt%]?)/i);
+    if (!m) return null;
+    var v = parseFloat(m[1]);
+    if (isNaN(v)) return null;
+    var mult = { k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[2].toLowerCase()] || 1;
+    return v * mult;
+  }
+
+  // +1 = the event's currency gets stronger, -1 = weaker
+  function currencyEffect(kind, higher) {
+    if (kind === 'inverse') return higher ? -1 : 1;
+    return higher ? 1 : -1;
+  }
+  // +1 = USDCAD up, -1 = USDCAD down
+  function usdcadDir(cur, kind, higher) {
+    if (kind === 'oil') return higher ? 1 : -1; // bigger build -> oil weaker -> CAD weaker -> USDCAD up
+    var eff = currencyEffect(kind, higher);
+    return cur === 'USD' ? eff : -eff;
+  }
+
+  function getActual(e) {
+    var a = actuals[e.id];
+    if (a && a.v) return a.v;
+    return e.feedActual || '';
+  }
+
+  // ---------- feed ----------
+  function parseFeed(text) {
+    var data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('The feed did not return calendar data. Forex Factory may be limiting requests. Wait a few minutes and try again.'); }
+    if (!Array.isArray(data)) throw new Error('The feed format was not recognised.');
+    var out = [];
+    data.forEach(function (r) {
+      if (!r || !r.country || !r.date) return;
+      var cur = String(r.country).toUpperCase();
+      if (cur !== 'USD' && cur !== 'CAD') return;
+      var t = Date.parse(r.date);
+      if (isNaN(t)) return;
+      var impact = String(r.impact || '').trim();
+      out.push({
+        id: cur + '|' + r.title + '|' + r.date,
+        cur: cur,
+        title: String(r.title || 'Untitled'),
+        t: t,
+        impact: impact,
+        forecast: String(r.forecast || '').trim(),
+        previous: String(r.previous || '').trim(),
+        feedActual: String(r.actual || '').trim(),
+        holiday: /holiday/i.test(impact)
+      });
+    });
+    out.sort(function (a, b) { return a.t - b.t; });
+    return out;
+  }
+
+  async function loadFeed(force) {
+    var cache = lsGet(KEY_CACHE);
+    var now = Date.now();
+    var hasCache = !!(cache && Array.isArray(cache.events));
+    if (hasCache && !force && now - cache.fetchedAt < settings.cacheMins * MIN) {
+      applyData(cache.events, cache.fetchedAt, cache.via);
+      return;
+    }
+    if (hasCache && force && now - cache.fetchedAt < REFRESH_COOLDOWN) {
+      applyData(cache.events, cache.fetchedAt, cache.via);
+      showNotice('Data was fetched ' + fmtDur(now - cache.fetchedAt) + ' ago. Refresh works once every 5 minutes so Forex Factory does not block you.', 'info', []);
+      return;
+    }
+    var via = settings.useProxy ? 'relay' : 'direct';
+    setLoading(true);
+    try {
+      var url = settings.useProxy ? PROXY_URL + encodeURIComponent(FEED_URL) : FEED_URL;
+      var res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('The feed answered with error ' + res.status + '.');
+      var list = parseFeed(await res.text());
+      var stamp = Date.now();
+      lsSet(KEY_CACHE, { events: list, fetchedAt: stamp, via: via });
+      hideNotice();
+      applyData(list, stamp, via);
+    } catch (err) {
+      var msg = (err && err.name === 'TypeError')
+        ? 'The browser blocked the ' + via + ' request. The feed may not allow access from a local file.'
+        : (err && err.message) || String(err);
+      if (hasCache) {
+        applyData(cache.events, cache.fetchedAt, cache.via);
+        msg += ' Showing the data saved at ' + fDateTimeIST.format(cache.fetchedAt) + ' IST.';
+      } else {
+        renderAll();
+      }
+      var actions = [];
+      if (!settings.useProxy) actions.push({ label: 'Try through the relay', fn: function () { setSetting('useProxy', true); loadFeed(true); } });
+      else actions.push({ label: 'Try direct again', fn: function () { setSetting('useProxy', false); loadFeed(true); } });
+      actions.push({ label: 'Paste the feed manually', fn: openPaste });
+      showNotice(msg, 'warn', actions);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function usePasted() {
+    var txt = $('#paste-text').value.trim();
+    if (!txt) { showNotice('The paste box is empty. Copy the feed text first.', 'warn', [{ label: 'Paste the feed manually', fn: openPaste }]); openPaste(); return; }
+    try {
+      var list = parseFeed(txt);
+      var stamp = Date.now();
+      lsSet(KEY_CACHE, { events: list, fetchedAt: stamp, via: 'pasted' });
+      $('#paste-text').value = '';
+      hideNotice();
+      applyData(list, stamp, 'pasted');
+    } catch (e) {
+      showNotice('That text is not the calendar feed. ' + e.message, 'warn', [{ label: 'Paste the feed manually', fn: openPaste }]);
+      openPaste();
+    }
+  }
+
+  function applyData(list, stamp, via) {
+    events = list;
+    fetchedAt = stamp;
+    fetchedVia = via || '';
+    eventMap = new Map(events.map(function (e) { return [e.id, e]; }));
+    var days = dayKeys();
+    var today = dayKey(Date.now());
+    if (!selectedDay || days.indexOf(selectedDay) === -1) {
+      if (days.indexOf(today) !== -1) selectedDay = today;
+      else {
+        var future = days.filter(function (d) { return d > today; });
+        selectedDay = future.length ? future[0] : days[days.length - 1] || null;
+      }
+    }
+    renderAll();
+  }
+
+  function dayKeys() {
+    var seen = [];
+    events.forEach(function (e) { var k = dayKey(e.t); if (seen.indexOf(k) === -1) seen.push(k); });
+    return seen.sort();
+  }
+
+  function visible(e) {
+    if (e.holiday) return settings.showHolidays;
+    if (e.impact === 'High' || e.impact === 'Medium') return true;
+    return settings.showLow;
+  }
+
+  // ---------- no-trade blocks ----------
+  function buildBlocks() {
+    var raw = [];
+    events.forEach(function (e) {
+      if (e.holiday) return;
+      var hi = e.impact === 'High', med = e.impact === 'Medium';
+      if (!hi && !med) return;
+      var before = (hi ? settings.hiBefore : settings.medBefore) * MIN;
+      var after = (hi ? settings.hiAfter : settings.medAfter) * MIN;
+      var extra = isLong(e.title) ? settings.talkLen * MIN : 0;
+      raw.push({ start: e.t - before, end: e.t + extra + after, items: [e] });
+    });
+    raw.sort(function (a, b) { return a.start - b.start; });
+    var out = [];
+    raw.forEach(function (r) {
+      var last = out[out.length - 1];
+      if (last && r.start <= last.end) {
+        last.end = Math.max(last.end, r.end);
+        last.items = last.items.concat(r.items);
+      } else {
+        out.push({ start: r.start, end: r.end, items: r.items.slice() });
+      }
+    });
+    return out;
+  }
+
+  function blockNames(b) {
+    var names = [];
+    b.items.forEach(function (e) { var n = e.cur + ' ' + e.title; if (names.indexOf(n) === -1) names.push(n); });
+    return names.join(', ');
+  }
+
+  // ---------- meaning column ----------
+  function arrow(d) {
+    return d > 0 ? '<span class="dir up">USDCAD ▲</span>' : '<span class="dir down">USDCAD ▼</span>';
+  }
+
+  function scenarioLines(e, kind) {
+    var cur = e.cur;
+    var cmp = e.forecast ? 'forecast' : 'previous';
+    if (kind === 'oil') {
+      return '<div class="sc"><b>Bigger build than ' + cmp + '</b>: oil weaker, CAD weaker ' + arrow(1) + '</div>' +
+             '<div class="sc"><b>Smaller build or a draw</b>: oil stronger, CAD stronger ' + arrow(-1) + '</div>';
+    }
+    var hiLabel = kind === 'rate' ? 'Higher than expected (hike surprise)' : kind === 'inverse' ? 'Higher than ' + cmp + ' (worse)' : 'Higher than ' + cmp;
+    var loLabel = kind === 'rate' ? 'Lower than expected (cut surprise)' : kind === 'inverse' ? 'Lower than ' + cmp + ' (better)' : 'Lower than ' + cmp;
+    var hiEff = currencyEffect(kind, true);
+    var s = '<div class="sc"><b>' + hiLabel + '</b>: ' + cur + ' ' + (hiEff > 0 ? 'stronger' : 'weaker') + ' ' + arrow(usdcadDir(cur, kind, true)) + '</div>' +
+            '<div class="sc"><b>' + loLabel + '</b>: ' + cur + ' ' + (hiEff > 0 ? 'weaker' : 'stronger') + ' ' + arrow(usdcadDir(cur, kind, false)) + '</div>';
+    if (kind === 'rate') s += '<div class="sub">If the decision matches expectations, the statement and press conference drive the move.</div>';
+    return s;
+  }
+
+  function previousLine(e, kind, f, p) {
+    if (kind === 'oil' || f == null || p == null) return '';
+    var d = f - p;
+    if (Math.abs(d) < 1e-9) return kind === 'rate' ? 'Market expects no change.' : 'Forecast is the same as last time.';
+    if (kind === 'rate') return d > 0 ? 'Market expects a hike.' : 'Market expects a cut.';
+    var better = currencyEffect(kind, d > 0) > 0;
+    return 'Forecast is ' + (better ? 'better' : 'weaker') + ' for ' + e.cur + ' than last time. The market reacts mainly to actual versus forecast.';
+  }
+
+  function resultChain(e, kind, higher, refName) {
+    if (kind === 'oil') {
+      return higher ? '<b>Bigger build than ' + refName + '</b> → oil weaker → CAD weaker →'
+                    : '<b>Smaller build or bigger draw than ' + refName + '</b> → oil stronger → CAD stronger →';
+    }
+    var eff = currencyEffect(kind, higher);
+    var word;
+    if (kind === 'rate') word = higher ? 'Hawkish surprise' : 'Dovish surprise';
+    else word = (higher ? 'Above ' : 'Below ') + refName + (kind === 'inverse' ? (higher ? ' (worse)' : ' (better)') : '');
+    return '<b>' + word + '</b> → ' + e.cur + ' ' + (eff > 0 ? 'stronger' : 'weaker') + ' →';
+  }
+
+  function meaningHtml(e) {
+    if (e.holiday) return '<span class="dim">Bank holiday. Thinner trading, spreads can widen.</span>';
+    var kind = classify(e.title);
+    var cur = e.cur;
+    if (kind === 'talk') {
+      var hawk = cur === 'USD' ? 1 : -1;
+      return '<div class="sc"><b>Hawkish tone</b> (worried about inflation): ' + cur + ' stronger ' + arrow(hawk) + '</div>' +
+             '<div class="sc"><b>Dovish tone</b> (worried about growth): ' + cur + ' weaker ' + arrow(-hawk) + '</div>';
+    }
+    var actText = getActual(e);
+    var a = num(actText), f = num(e.forecast), p = num(e.previous);
+    if (actText && a == null) return '<div class="dim">Could not read that number. Type it like 0.3%, 215K or -2.1M.</div>';
+    var ref = f != null ? f : p;
+    var refName = f != null ? 'forecast' : 'previous';
+    if (a != null) {
+      if (ref == null) return '<div class="dim">No forecast or previous figure to compare with.</div>';
+      var diff = a - ref;
+      if (Math.abs(diff) < 1e-9) return '<div class="res"><b>In line with ' + refName + '.</b> Usually a small reaction. Other news or the details drive the move.</div>';
+      var higher = diff > 0;
+      return '<div class="res">' + resultChain(e, kind, higher, refName) + ' ' + arrow(usdcadDir(cur, kind, higher)) + '</div>' +
+             '<div class="sub">The first move can reverse within minutes.</div>';
+    }
+    var html = scenarioLines(e, kind);
+    var pl = previousLine(e, kind, f, p);
+    if (pl) html += '<div class="sub">' + pl + '</div>';
+    if (f == null && kind !== 'oil') html += '<div class="sub">No forecast published. Compare the actual with the previous figure.</div>';
+    return html;
+  }
+
+  function statusHtml(e) {
+    var now = Date.now();
+    if (e.holiday) return '<span class="pill hol">Holiday</span>';
+    var kind = classify(e.title);
+    if (now < e.t) return '<span class="pill wait">in ' + fmtDur(e.t - now) + '</span>';
+    if (kind === 'talk') {
+      var end = e.t + (isLong(e.title) ? settings.talkLen * MIN : 0);
+      return now < end ? '<span class="pill live">Live now</span>' : '<span class="pill done">Done</span>';
+    }
+    return getActual(e) ? '<span class="pill done">Released</span>' : '<span class="pill need">Out: enter actual</span>';
+  }
+
+  // ---------- rendering ----------
+  function renderDays() {
+    var box = $('#days');
+    var today = dayKey(Date.now());
+    box.innerHTML = dayKeys().map(function (k) {
+      return '<button type="button" class="day" data-day="' + k + '" aria-pressed="' + (k === selectedDay) + '">' +
+        esc(dayLabel(k)) + (k === today ? ' <span class="today">Today</span>' : '') + '</button>';
+    }).join('');
+  }
+
+  function impactHtml(e) {
+    if (e.holiday) return '<span class="imp Other"><i></i>Holiday</span>';
+    var cls = (e.impact === 'High' || e.impact === 'Medium' || e.impact === 'Low') ? e.impact : 'Other';
+    return '<span class="imp ' + cls + '"><i></i>' + esc(e.impact || 'n/a') + '</span>';
+  }
+
+  function rowHtml(e, isNext) {
+    var kind = classify(e.title);
+    var timeCell = e.holiday
+      ? '<div class="t">All day</div>'
+      : '<div class="t">' + fTimeIST.format(e.t) + '</div><div class="sub">' + fTimeNY.format(e.t) + ' New York</div>';
+    var act = getActual(e);
+    var actCell = (e.holiday || kind === 'talk')
+      ? '<span class="dim">n/a</span>'
+      : '<input class="act" type="text" data-id="' + esc(e.id) + '" value="' + esc(act) + '" placeholder="' + (e.t > Date.now() ? 'Pending' : 'Type it') + '" aria-label="Actual for ' + esc(e.title) + '">';
+    return '<tr' + (isNext ? ' class="next"' : '') + '>' +
+      '<td>' + timeCell + '</td>' +
+      '<td><span class="cur ' + e.cur + '">' + e.cur + '</span></td>' +
+      '<td>' + esc(e.title) +
+        ((settings.showWatch && isLong(e.title) && WATCH_URL[e.cur])
+          ? '<div class="sub"><a href="' + WATCH_URL[e.cur] + '" target="_blank" rel="noopener">Watch live</a></div>' : '') +
+      '</td>' +
+      '<td>' + impactHtml(e) + '</td>' +
+      '<td class="num">' + (e.previous ? esc(e.previous) : '<span class="dim">n/a</span>') + '</td>' +
+      '<td class="num">' + (e.forecast ? esc(e.forecast) : '<span class="dim">n/a</span>') + '</td>' +
+      '<td>' + actCell + '</td>' +
+      '<td class="col-meaning mean">' + meaningHtml(e) + '</td>' +
+      '<td class="st" data-id="' + esc(e.id) + '">' + statusHtml(e) + '</td>' +
+      '</tr>';
+  }
+
+  function renderTable() {
+    var tb = $('#ev-body');
+    if (!events.length) {
+      tb.innerHTML = '<tr><td colspan="9" class="empty">No calendar loaded. Use Refresh data, or paste the feed from Settings.</td></tr>';
+      return;
+    }
+    var now = Date.now();
+    var list = events.filter(function (e) { return dayKey(e.t) === selectedDay && visible(e); });
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="9" class="empty">No ' + (settings.showLow ? '' : 'high or medium impact ') + 'USD or CAD events on this day.</td></tr>';
+      return;
+    }
+    var nextEv = list.find(function (e) { return !e.holiday && e.t > now; });
+    tb.innerHTML = list.map(function (e) { return rowHtml(e, e === nextEv); }).join('');
+  }
+
+  function renderBlocks(now) {
+    var box = $('#blocks');
+    if (!events.length) { box.innerHTML = '<p class="dim">Load the calendar to see blocks.</p>'; return; }
+    var dayBlocks = blocks.filter(function (b) {
+      return b.items.some(function (e) { return dayKey(e.t) === selectedDay; });
+    });
+    if (!dayBlocks.length) { box.innerHTML = '<p class="dim">No high or medium impact USD or CAD news on this day. No blocks needed.</p>'; return; }
+    box.innerHTML = dayBlocks.map(function (b) {
+      var pill = now >= b.end ? '<span class="pill done">Done</span>'
+        : now >= b.start ? '<span class="pill live">Active</span>'
+        : '<span class="pill wait">in ' + fmtDur(b.start - now) + '</span>';
+      return '<div class="blk"><span class="rng">' + fTimeIST.format(b.start) + ' to ' + fTimeIST.format(b.end) + '</span>' +
+        '<span class="what">' + esc(blockNames(b)) + '</span>' + pill + '</div>';
+    }).join('');
+  }
+
+  function setBanner(state, word, detail, why) {
+    var el = $('#banner');
+    el.className = state;
+    $('#b-word').textContent = word;
+    $('#b-detail').textContent = detail;
+    $('#b-why').textContent = why || '';
+  }
+
+  function renderBanner(now) {
+    if (!events.length) {
+      setBanner('', 'No data', 'Load the calendar to see news risk.', '');
+      return;
+    }
+    var active = blocks.find(function (b) { return now >= b.start && now < b.end; });
+    if (active) {
+      setBanner('stop', 'No new trades', 'Clear again at ' + fTimeIST.format(active.end) + ' IST, in ' + fmtDur(active.end - now), 'Because of: ' + blockNames(active));
+      return;
+    }
+    var next = blocks.find(function (b) { return b.start > now; });
+    if (next && next.start - now <= SOON_WINDOW) {
+      setBanner('soon', 'Stand by', 'No-trade block starts at ' + fTimeIST.format(next.start) + ' IST, in ' + fmtDur(next.start - now), 'Coming up: ' + blockNames(next));
+    } else if (next) {
+      setBanner('clear', 'Clear to trade', 'Next no-trade block: ' + fDateTimeIST.format(next.start) + ' IST, in ' + fmtDur(next.start - now), 'Coming up: ' + blockNames(next));
+    } else {
+      setBanner('clear', 'Clear to trade', "No more high or medium impact USD or CAD news in this week's calendar.", 'Refresh after the weekend to load next week.');
+    }
+  }
+
+  function renderSource() {
+    var el = $('#source-line');
+    if (!fetchedAt) { el.textContent = 'No data loaded yet.'; return; }
+    var viaText = fetchedVia === 'pasted' ? 'pasted manually' : fetchedVia === 'relay' ? 'through the relay' : 'direct';
+    var age = Date.now() - fetchedAt;
+    var stale = age > 12 * 60 * MIN ? ' This data is over 12 hours old. Refresh before trading.' : '';
+    el.textContent = 'Source: Forex Factory weekly feed, loaded ' + fDateTimeIST.format(fetchedAt) + ' IST (' + viaText + ').' + stale;
+  }
+
+  function applyVisibility() {
+    $('#clocks').classList.toggle('hidden', !settings.showClocks);
+    $('#ev-table').classList.toggle('hide-meaning', !settings.showMeaning);
+    $('#legend').classList.toggle('hidden', !settings.showMeaning);
+    $('#blocks-panel').classList.toggle('hidden', !settings.showBlocks);
+    $('#links-panel').classList.toggle('hidden', !settings.showLinks);
+    var lower = document.querySelector('.lower');
+    lower.classList.toggle('hidden', !settings.showBlocks && !settings.showLinks);
+    lower.style.gridTemplateColumns = (settings.showBlocks && settings.showLinks) ? '' : '1fr';
+  }
+
+  function renderAll() {
+    blocks = buildBlocks();
+    applyVisibility();
+    renderDays();
+    renderTable();
+    renderSource();
+    tick();
+  }
+
+  function tick() {
+    var now = Date.now();
+    if (settings.showClocks) {
+      $('#clk-ist').textContent = fClockIST.format(now);
+      $('#clk-ny').textContent = fClockNY.format(now);
+    }
+    renderBanner(now);
+    if (settings.showBlocks) renderBlocks(now);
+    document.querySelectorAll('td.st').forEach(function (td) {
+      var e = eventMap.get(td.dataset.id);
+      if (e) td.innerHTML = statusHtml(e);
+    });
+  }
+
+  // ---------- notice ----------
+  function showNotice(text, kind, actions) {
+    var box = $('#notice');
+    box.style.display = 'block';
+    box.className = kind === 'info' ? 'info' : '';
+    $('#notice-text').textContent = text;
+    var row = $('#notice-actions');
+    row.innerHTML = '';
+    (actions || []).forEach(function (a) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn';
+      b.textContent = a.label;
+      b.addEventListener('click', a.fn);
+      row.appendChild(b);
+    });
+    var d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'btn';
+    d.textContent = 'Dismiss';
+    d.addEventListener('click', hideNotice);
+    row.appendChild(d);
+  }
+  function hideNotice() {
+    $('#notice').style.display = 'none';
+    $('#paste-box').style.display = 'none';
+  }
+  function openPaste() {
+    var box = $('#notice');
+    if (box.style.display !== 'block') showNotice('Paste the calendar feed to load this week without fetching.', 'info', []);
+    $('#paste-box').style.display = 'block';
+    var dlg = $('#dlg');
+    if (dlg.open) dlg.close();
+    $('#paste-text').focus();
+  }
+
+  function setLoading(on) {
+    var b = $('#btn-refresh');
+    b.disabled = on;
+    b.textContent = on ? 'Refreshing…' : 'Refresh data';
+  }
+
+  // ---------- settings ----------
+  function setSetting(key, value) {
+    settings[key] = value;
+    lsSet(KEY_SETTINGS, settings);
+    syncSettingsForm();
+  }
+  function syncSettingsForm() {
+    document.querySelectorAll('[data-set]').forEach(function (el) {
+      var k = el.dataset.set;
+      if (el.type === 'checkbox') el.checked = !!settings[k];
+      else el.value = settings[k];
+    });
+  }
+  function onSettingChange(ev) {
+    var el = ev.target;
+    var k = el.dataset.set;
+    if (!k) return;
+    if (el.type === 'checkbox') {
+      settings[k] = el.checked;
+    } else {
+      var v = parseInt(el.value, 10);
+      var lo = parseInt(el.min, 10), hi = parseInt(el.max, 10);
+      if (isNaN(v)) v = DEFAULTS[k];
+      v = Math.min(hi, Math.max(lo, v));
+      settings[k] = v;
+      el.value = v;
+    }
+    lsSet(KEY_SETTINGS, settings);
+    renderAll();
+  }
+
+  function pruneActuals() {
+    var cutoff = Date.now() - 14 * 24 * 60 * MIN;
+    Object.keys(actuals).forEach(function (k) {
+      if (!actuals[k] || !actuals[k].s || actuals[k].s < cutoff) delete actuals[k];
+    });
+    lsSet(KEY_ACTUALS, actuals);
+  }
+
+  // ---------- wiring ----------
+  function init() {
+    $('#feed-link').href = FEED_URL;
+    syncSettingsForm();
+    pruneActuals();
+
+    $('#btn-refresh').addEventListener('click', function () { loadFeed(true); });
+    $('#btn-settings').addEventListener('click', function () { $('#dlg').showModal(); });
+    $('#btn-close').addEventListener('click', function () { $('#dlg').close(); });
+    $('#dlg').addEventListener('change', onSettingChange);
+    $('#btn-paste').addEventListener('click', openPaste);
+    $('#btn-use-paste').addEventListener('click', usePasted);
+    $('#btn-clear-actuals').addEventListener('click', function () {
+      if (!confirm('Clear every actual you typed in?')) return;
+      actuals = {};
+      lsSet(KEY_ACTUALS, actuals);
+      renderAll();
+    });
+    $('#btn-reset').addEventListener('click', function () {
+      settings = Object.assign({}, DEFAULTS);
+      lsSet(KEY_SETTINGS, settings);
+      syncSettingsForm();
+      renderAll();
+    });
+
+    $('#days').addEventListener('click', function (ev) {
+      var b = ev.target.closest('.day');
+      if (!b) return;
+      selectedDay = b.dataset.day;
+      renderDays();
+      renderTable();
+      tick();
+    });
+
+    $('#ev-body').addEventListener('input', function (ev) {
+      var el = ev.target;
+      if (!el.classList.contains('act')) return;
+      var id = el.dataset.id;
+      var v = el.value.trim();
+      if (v) actuals[id] = { v: v, s: Date.now() };
+      else delete actuals[id];
+      lsSet(KEY_ACTUALS, actuals);
+      var e = eventMap.get(id);
+      if (!e) return;
+      var row = el.closest('tr');
+      row.querySelector('.mean').innerHTML = meaningHtml(e);
+      row.querySelector('.st').innerHTML = statusHtml(e);
+    });
+
+    renderAll();
+    loadFeed(false);
+    setInterval(tick, 1000);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
